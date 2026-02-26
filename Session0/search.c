@@ -11,7 +11,10 @@ gcc search.c -o search; ./search  # Mac
 #define n 5
 
 int j, q;
+
 int a[] = {11, 1, 4, -3, 22};
+
+
 
 int main() {
   j = 0; q = -3;
