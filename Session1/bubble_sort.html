@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Sort Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0d0d; color: #e0e0e0;
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 40px 20px;
+  }
+  h1 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -1px; color: #fff; margin-bottom: 6px; }
+  .subtitle { font-size: 0.75rem; color: #555; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  button {
+    background: #1a1a1a; border: 1px solid #333; color: #ccc;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+    padding: 10px 20px; cursor: pointer; transition: all 0.15s; letter-spacing: 1px;
+  }
+  button:hover { background: #222; border-color: #ff3b3b; color: #fff; }
+  button.primary { background: #ff3b3b; border-color: #ff3b3b; color: #fff; }
+  button.primary:hover { background: #ff5555; }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .control-group { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #555; }
+  input[type=range] { accent-color: #ff3b3b; width: 100px; }
+  select {
+    background: #1a1a1a; border: 1px solid #333; color: #ccc;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+    padding: 9px 12px; cursor: pointer; outline: none;
+  }
+  select:hover { border-color: #ff3b3b; }
+  .preview {
+    display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 20px; min-height: 28px;
+  }
+  .preview-num {
+    display: inline-block; width: 28px; text-align: center;
+    font-weight: 700; font-size: 0.82rem; padding: 2px 0; color: #444;
+  }
+  .log {
+    width: 100%; max-width: 700px; background: #111; border: 1px solid #222;
+    padding: 20px; max-height: 440px; overflow-y: auto; scroll-behavior: smooth;
+  }
+  .log-line {
+    display: flex; align-items: center; gap: 12px; padding: 5px 0;
+    border-bottom: 1px solid #181818; font-size: 0.82rem;
+    opacity: 0; transform: translateY(4px); transition: opacity 0.2s, transform 0.2s;
+  }
+  .log-line.visible { opacity: 1; transform: translateY(0); }
+  .log-line.pass-header { color: #666; font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; padding-top: 14px; border-bottom: 1px solid #222; }
+  .log-line.done { color: #4caf50; font-weight: 700; letter-spacing: 1px; }
+  .array-display { display: flex; gap: 5px; flex-wrap: wrap; }
+  .num { display: inline-block; width: 28px; text-align: center; font-weight: 700; padding: 2px 0; }
+  .num.swapped   { color: #ff3b3b; text-shadow: 0 0 8px #ff3b3b88; }
+  .num.comparing { color: #ffd600; text-shadow: 0 0 8px #ffd60088; }
+  .num.sorted    { color: #4caf50; }
+  .action-label { font-size: 0.72rem; min-width: 80px; }
+  .action-label.swap    { color: #ff3b3b99; }
+  .action-label.compare { color: #ffd60099; }
+  .stats { display: flex; gap: 30px; margin-bottom: 16px; font-size: 0.75rem; color: #444; letter-spacing: 1px; }
+  .stats b { color: #ff3b3b; }
+  .legend { display: flex; gap: 20px; margin-bottom: 16px; font-size: 0.72rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.yellow { background: #ffd600; } .dot.red { background: #ff3b3b; } .dot.green { background: #4caf50; }
+</style>
+</head>
+<body>
+<h1>Bubble Sort</h1>
+<p class="subtitle">step-by-step visualizer</p>
+
+<div class="controls">
+  <button class="primary" id="runBtn" onclick="runSort()">&#9654; Run</button>
+  <button onclick="generateArray()">&#8635; New Array</button>
+  <div class="control-group">
+    <span>Size</span>
+    <select id="sizeSelect" onchange="generateArray()">
+      <option value="5">5</option>
+      <option value="7" selected>7</option>
+      <option value="10">10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <span>Slow</span>
+    <input type="range" id="speed" min="50" max="900" value="500">
+    <span>Fast</span>
+  </div>
+</div>
+
+<div class="preview" id="preview"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot yellow"></div><span style="color:#555">comparing</span></div>
+  <div class="legend-item"><div class="dot red"></div><span style="color:#555">swapped</span></div>
+  <div class="legend-item"><div class="dot green"></div><span style="color:#555">sorted</span></div>
+</div>
+<div class="stats">
+  <div>Passes: <b id="passCount">0</b></div>
+  <div>Swaps: <b id="swapCount">0</b></div>
+  <div>Comparisons: <b id="compCount">0</b></div>
+</div>
+<div class="log" id="log"></div>
+
+<script>
+  var currentArray = [];
+  var running = false;
+  var swaps = 0, comps = 0, passes = 0;
+
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function generateArray() {
+    if (running) return;
+    var n = parseInt(document.getElementById('sizeSelect').value);
+    var arr = [];
+    for (var i = 0; i < n; i++) arr.push(i);
+    currentArray = shuffle(arr);
+    renderPreview();
+    clearLog();
+  }
+
+  function renderPreview() {
+    var p = document.getElementById('preview');
+    p.innerHTML = currentArray.map(function(n) {
+      return '<span class="preview-num">' + n + '</span>';
+    }).join('');
+  }
+
+  function clearLog() {
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('passCount').textContent = '0';
+    document.getElementById('swapCount').textContent = '0';
+    document.getElementById('compCount').textContent = '0';
+    document.getElementById('runBtn').disabled = false;
+    swaps = 0; comps = 0; passes = 0;
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function getDelay() { return 950 - parseInt(document.getElementById('speed').value); }
+
+  function renderArray(arr, swappedIdx, comparingIdx, sortedFrom) {
+    swappedIdx   = swappedIdx   || [];
+    comparingIdx = comparingIdx || [];
+    sortedFrom   = (sortedFrom === undefined) ? arr.length : sortedFrom;
+    return arr.map(function(n, i) {
+      var cls = 'num';
+      if (swappedIdx.indexOf(i) >= 0)        cls += ' swapped';
+      else if (comparingIdx.indexOf(i) >= 0) cls += ' comparing';
+      else if (i >= sortedFrom)              cls += ' sorted';
+      return '<span class="' + cls + '">' + n + '</span>';
+    }).join('');
+  }
+
+  function addLine(html, type) {
+    var log  = document.getElementById('log');
+    var line = document.createElement('div');
+    line.className = 'log-line ' + (type || '');
+    line.innerHTML = html;
+    log.appendChild(line);
+    requestAnimationFrame(function() { line.classList.add('visible'); });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function runSort() {
+    if (running) return;
+    clearLog();
+    running = true;
+    document.getElementById('runBtn').disabled = true;
+
+    var arr = currentArray.slice();
+    var n   = arr.length;
+
+    for (var i = 0; i < n - 1; i++) {
+      passes++;
+      document.getElementById('passCount').textContent = passes;
+      addLine('Pass ' + (i + 1), 'pass-header');
+
+      for (var j = 0; j < n - i - 1; j++) {
+        comps++;
+        document.getElementById('compCount').textContent = comps;
+        var sortedFrom = n - i;
+        var needsSwap  = arr[j] > arr[j + 1];
+
+        addLine(
+          '<div class="array-display">' + renderArray(arr, [], [j, j+1], sortedFrom) + '</div>' +
+          '<span class="action-label compare">compare</span>'
+        );
+        await delay(getDelay());
+
+        if (needsSwap) {
+          var tmp = arr[j]; arr[j] = arr[j+1]; arr[j+1] = tmp;
+          swaps++;
+          document.getElementById('swapCount').textContent = swaps;
+          addLine(
+            '<div class="array-display">' + renderArray(arr, [j, j+1], [], sortedFrom) + '</div>' +
+            '<span class="action-label swap">swap</span>'
+          );
+          await delay(getDelay());
+        }
+      }
+    }
+
+    addLine('<div class="array-display">' + renderArray(arr, [], [], 0) + '</div> &#10003; sorted', 'done');
+    running = false;
+  }
+
+  // Init
+  generateArray();
+</script>
+</body>
+</html>

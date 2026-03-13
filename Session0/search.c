@@ -12,8 +12,8 @@ gcc search.c -o search; ./search  # Mac
 
 int j, q;
 
-int a[] = {11, 1, 4, -3, 22};
 
+int a[] = {11, 1, 4, -3, 22};
 
 
 int main() {
@@ -22,3 +22,4 @@ int main() {
   if (j < n) { printf("%d\n", j); }
   else { printf("NIL\n"); }
 }
+

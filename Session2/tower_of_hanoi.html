@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tower of Hanoi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0f0f1a;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  h1 { color: #54a0ff; margin-bottom: 6px; font-size: 1.6rem; }
+  .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+
+  #playBtn { background: #2ecc71; color: white; }
+  #playBtn:hover { background: #27ae60; }
+  #playBtn.pause { background: #e74c3c; }
+  #playBtn.pause:hover { background: #c0392b; }
+  #resetBtn { background: #54a0ff; color: white; }
+  #resetBtn:hover { background: #2980b9; }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1a1a2e;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #aaa;
+  }
+
+  .speed-control select {
+    background: #2a2a3e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+  }
+
+  .stage {
+    position: relative;
+    width: 700px;
+    max-width: 100%;
+    height: 320px;
+  }
+
+  canvas { border-radius: 12px; }
+
+  .message-box {
+    margin-top: 14px;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    color: #feca57;
+    font-family: monospace;
+    min-height: 38px;
+    text-align: center;
+    width: 700px;
+    max-width: 100%;
+  }
+
+  .call-stack {
+    margin-top: 14px;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 16px;
+    width: 700px;
+    max-width: 100%;
+  }
+
+  .call-stack h3 {
+    color: #54a0ff;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .stack-frames {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 28px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .frame {
+    background: #2a2a3e;
+    border-left: 3px solid #54a0ff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #ccc;
+    transition: all 0.3s;
+  }
+
+  .frame.active {
+    border-left-color: #feca57;
+    color: #feca57;
+    background: #2e2a1a;
+  }
+
+  .frame.returned {
+    border-left-color: #2ecc71;
+    color: #555;
+    background: #1a2e1a;
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+
+  .progress-bar {
+    width: 700px;
+    max-width: 100%;
+    height: 6px;
+    background: #2a2a3e;
+    border-radius: 3px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #54a0ff, #5f27cd);
+    border-radius: 3px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .disk-count {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #1a1a2e;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #aaa;
+  }
+
+  .disk-count button {
+    padding: 2px 10px;
+    font-size: 0.85rem;
+    background: #2a2a3e;
+    color: white;
+  }
+
+  .disk-count span { color: #feca57; font-weight: bold; font-size: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>🗼 Tower of Hanoi</h1>
+<p class="subtitle">Watch the call stack grow and shrink as disks move</p>
+
+<div class="controls">
+  <button id="playBtn">▶ Play</button>
+  <button id="resetBtn">↺ Reset</button>
+  <div class="disk-count">
+    Disks:
+    <button onclick="changeDiskCount(-1)">−</button>
+    <span id="diskCountDisplay">3</span>
+    <button onclick="changeDiskCount(1)">+</button>
+  </div>
+  <div class="speed-control">
+    Speed:
+    <select id="speedSelect">
+      <option value="1200">Slow</option>
+      <option value="700" selected>Medium</option>
+      <option value="350">Fast</option>
+      <option value="100">Turbo</option>
+    </select>
+  </div>
+</div>
+
+<div class="stage">
+  <canvas id="canvas" width="700" height="320"></canvas>
+</div>
+
+<div class="message-box" id="message">Press Play to start the animation</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="call-stack">
+  <h3>📚 Call Stack</h3>
+  <div class="stack-frames" id="stackFrames"><div style="color:#555;font-size:0.8rem;font-family:monospace">— empty —</div></div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const COLORS = ['#FF6B6B','#FF9F43','#FECA57','#48DBFB','#54A0FF','#5F27CD','#FF9FF3'];
+const PEG_NAMES = ['A','B','C'];
+const PEG_X = [W * 0.18, W * 0.5, W * 0.82];
+const BASE_Y = H - 40;
+const PEG_H = 200;
+const DISK_H = 22;
+const DISK_GAP = 4;
+
+let numDisks = 3;
+let pegs, animSteps, stepIndex, isPlaying, animTimer, flyDisk, flyProgress, callStack, callLog;
+
+function initState() {
+  pegs = [
+    Array.from({length: numDisks}, (_, i) => numDisks - i),
+    [], []
+  ];
+  animSteps = [];
+  callStack = [];
+  callLog = [];
+  buildSteps(numDisks, 0, 1, 2, 0);
+  stepIndex = 0;
+  isPlaying = false;
+  flyDisk = null;
+  flyProgress = 0;
+  clearInterval(animTimer);
+  updatePlayBtn();
+  renderCallStack([]);
+  setMessage('Press Play to start the animation');
+  updateProgress();
+  drawAll(pegs, null);
+}
+
+function buildSteps(n, from, to, aux, depth) {
+  if (n === 0) return;
+  animSteps.push({ type: 'call', n, from, to, aux, depth });
+  buildSteps(n - 1, from, aux, to, depth + 1);
+  animSteps.push({ type: 'move', disk: n, from, to, depth });
+  buildSteps(n - 1, aux, to, from, depth + 1);
+  animSteps.push({ type: 'return', n, from, to, aux, depth });
+}
+
+function diskWidth(disk) {
+  return 40 + (disk / numDisks) * 160;
+}
+
+function getDiskY(pegIndex, stackPos) {
+  return BASE_Y - DISK_H / 2 - stackPos * (DISK_H + DISK_GAP);
+}
+
+function drawAll(pegsState, flying) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Base
+  ctx.fillStyle = '#2a2a3e';
+  ctx.beginPath();
+  ctx.roundRect(30, BASE_Y + 8, W - 60, 18, 6);
+  ctx.fill();
+
+  // Pegs
+  PEG_X.forEach((x, i) => {
+    ctx.fillStyle = '#4a4a6a';
+    ctx.beginPath();
+    ctx.roundRect(x - 5, BASE_Y - PEG_H, 10, PEG_H + 10, 4);
+    ctx.fill();
+
+    // Peg label
+    ctx.fillStyle = '#888';
+    ctx.font = 'bold 16px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(PEG_NAMES[i], x, BASE_Y + 34);
+  });
+
+  // Disks on pegs
+  pegsState.forEach((peg, pi) => {
+    peg.forEach((disk, si) => {
+      if (flying && flying.disk === disk && flying.fromPeg === pi) return;
+      drawDisk(disk, PEG_X[pi], getDiskY(pi, si));
+    });
+  });
+
+  // Flying disk
+  if (flying) {
+    drawDisk(flying.disk, flying.x, flying.y);
+  }
+}
+
+function drawDisk(disk, x, y) {
+  const w = diskWidth(disk);
+  const color = COLORS[(disk - 1) % COLORS.length];
+
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - DISK_H / 2, w, DISK_H, 6);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.font = `bold ${DISK_H * 0.6}px Segoe UI`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(disk, x, y);
+}
+
+function setMessage(msg) {
+  document.getElementById('message').textContent = msg;
+}
+
+function updateProgress() {
+  const pct = animSteps.length ? (stepIndex / animSteps.length) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function renderCallStack() {
+  const container = document.getElementById('stackFrames');
+  if (callLog.length === 0) {
+    container.innerHTML = '<div style="color:#555;font-size:0.8rem;font-family:monospace">— empty —</div>';
+    return;
+  }
+  container.innerHTML = callLog.map((f) => {
+    const isActive = f.status === 'active';
+    const isReturned = f.status === 'returned';
+    let cls = 'frame';
+    if (isActive) cls += ' active';
+    if (isReturned) cls += ' returned';
+    const label = isActive ? ' ◀ active' : isReturned ? ' ✓ returned' : '';
+    return `<div class="${cls}" style="margin-left:${f.depth * 10}px">
+      hanoi(${f.n}, ${PEG_NAMES[f.from]}, ${PEG_NAMES[f.to]}, ${PEG_NAMES[f.aux]})
+      <span style="font-size:0.75rem;opacity:0.7">${label}</span>
+    </div>`;
+  }).join('');
+  // Auto-scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+function updatePlayBtn() {
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    btn.textContent = '⏸ Pause';
+    btn.classList.add('pause');
+  } else {
+    btn.textContent = '▶ Play';
+    btn.classList.remove('pause');
+  }
+}
+
+async function runStep() {
+  if (stepIndex >= animSteps.length) {
+    isPlaying = false;
+    updatePlayBtn();
+    setMessage('✅ Done! All disks moved from A to B.');
+    return;
+  }
+
+  const step = animSteps[stepIndex];
+  const speed = parseInt(document.getElementById('speedSelect').value);
+
+  if (step.type === 'call') {
+    const frame = { n: step.n, from: step.from, to: step.to, aux: step.aux, depth: step.depth, status: 'active' };
+    // Mark previous active as pending
+    callLog.forEach(f => { if (f.status === 'active') f.status = 'pending'; });
+    callStack.push(frame);
+    callLog.push(frame);
+    renderCallStack();
+    setMessage(`📞 hanoi(${step.n}, ${PEG_NAMES[step.from]}, ${PEG_NAMES[step.to]}, ${PEG_NAMES[step.aux]})`);
+    drawAll(pegs, null);
+    stepIndex++;
+    scheduleNext(speed * 0.4);
+
+  } else if (step.type === 'return') {
+    const popped = callStack.pop();
+    if (popped) popped.status = 'returned';
+    // Re-activate the new top of stack
+    if (callStack.length > 0) callStack[callStack.length - 1].status = 'active';
+    renderCallStack();
+    setMessage(`↩ return from hanoi(${step.n}, ${PEG_NAMES[step.from]}, ${PEG_NAMES[step.to]}, ${PEG_NAMES[step.aux]})`);
+    drawAll(pegs, null);
+    stepIndex++;
+    scheduleNext(speed * 0.3);
+
+  } else if (step.type === 'move') {
+    setMessage(`💾 Move disk ${step.disk}: ${PEG_NAMES[step.from]} → ${PEG_NAMES[step.to]}`);
+    await animateMove(step.disk, step.from, step.to, speed);
+    stepIndex++;
+    scheduleNext(speed * 0.2);
+  }
+
+  updateProgress();
+}
+
+function scheduleNext(delay) {
+  if (!isPlaying) return;
+  animTimer = setTimeout(runStep, delay);
+}
+
+function animateMove(disk, fromPeg, toPeg, speed) {
+  return new Promise(resolve => {
+    const fromStack = pegs[fromPeg];
+    const stackPos = fromStack.length - 1;
+    const startX = PEG_X[fromPeg];
+    const startY = getDiskY(fromPeg, stackPos);
+    const endX = PEG_X[toPeg];
+    const endY = getDiskY(toPeg, pegs[toPeg].length);
+    const arcY = BASE_Y - PEG_H - 40;
+
+    pegs[fromPeg].pop();
+
+    const frames = Math.max(20, Math.floor(speed / 16));
+    let f = 0;
+
+    function tick() {
+      const t = f / frames;
+      const x = startX + (endX - startX) * t;
+      const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * arcY + t * t * endY;
+
+      drawAll(pegs, { disk, x, y, fromPeg });
+
+      f++;
+      if (f <= frames) {
+        requestAnimationFrame(tick);
+      } else {
+        pegs[toPeg].push(disk);
+        drawAll(pegs, null);
+        resolve();
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (stepIndex >= animSteps.length) { initState(); return; }
+  isPlaying = !isPlaying;
+  updatePlayBtn();
+  if (isPlaying) runStep();
+  else clearTimeout(animTimer);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  clearTimeout(animTimer);
+  initState();
+});
+
+function changeDiskCount(delta) {
+  const next = numDisks + delta;
+  if (next < 2 || next > 7) return;
+  numDisks = next;
+  document.getElementById('diskCountDisplay').textContent = numDisks;
+  clearTimeout(animTimer);
+  initState();
+}
+
+initState();
+</script>
+</body>
+</html>
