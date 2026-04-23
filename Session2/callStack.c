@@ -16,12 +16,13 @@ void printRec(int n){
     printf("%d\n", n%2);
 
     printf("Before recursive call of n = %d\n", n/2);
-    printRec(n/2);
+
+    printRec(n/2);   //RECURSIVE CALL
 
     printf("After recursive call of n = %d\n", n/2);
 
     printf("%d\n", n%2);
 
-    
+
 
 }
